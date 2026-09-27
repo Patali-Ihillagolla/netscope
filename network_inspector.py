@@ -1,17 +1,208 @@
 import platform
 import socket
+import subprocess
+import ipaddress
+import re
 
+
+def get_network_info():
+    """Get active network information from Windows ipconfig."""
+
+    result = subprocess.run(
+        ["ipconfig"],
+        capture_output=True,
+        text=True
+    )
+
+    output = result.stdout
+
+    interface = None
+    ip_address = None
+    subnet_mask = None
+    gateway = None
+
+    current_interface = None
+
+    for line in output.splitlines():
+
+        # Find network interface
+        interface_match = re.search(
+            r"^\s*(Wireless LAN adapter|Ethernet adapter)\s+(.+):\s*$",
+            line
+        )
+
+        if interface_match:
+            current_interface = interface_match.group(2).strip()
+
+        # Find IPv4 address
+        ip_match = re.search(
+            r"IPv4 Address.*:\s*([\d.]+)",
+            line
+        )
+
+        if ip_match and current_interface:
+            ip_address = ip_match.group(1)
+            interface = current_interface
+
+        # Find subnet mask
+        mask_match = re.search(
+            r"Subnet Mask.*:\s*([\d.]+)",
+            line
+        )
+
+        if mask_match and current_interface:
+            subnet_mask = mask_match.group(1)
+
+        # Find default gateway
+        gateway_match = re.search(
+            r"Default Gateway.*:\s*([\d.]+)",
+            line
+        )
+
+        if gateway_match and current_interface:
+            gateway = gateway_match.group(1)
+
+    return interface, ip_address, subnet_mask, gateway
+
+
+def mask_to_cidr(subnet_mask):
+    """Convert subnet mask to CIDR prefix length."""
+
+    network = ipaddress.IPv4Network(
+        "0.0.0.0/" + subnet_mask
+    )
+
+    return network.prefixlen
+
+
+def get_network_details(ip_address, subnet_mask):
+    """Calculate network, broadcast and usable hosts."""
+
+    cidr = mask_to_cidr(subnet_mask)
+
+    network = ipaddress.ip_network(
+        f"{ip_address}/{cidr}",
+        strict=False
+    )
+
+    # /31 and /32 are special cases.
+    if network.prefixlen >= 31:
+        usable_hosts = network.num_addresses
+    else:
+        usable_hosts = network.num_addresses - 2
+
+    return (
+        cidr,
+        network,
+        network.network_address,
+        network.broadcast_address,
+        usable_hosts
+    )
+
+
+def check_ping(address):
+    """Check whether an address is reachable using ping."""
+
+    if not address:
+        return False
+
+    result = subprocess.run(
+        ["ping", "-n", "1", "-w", "1000", address],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    return result.returncode == 0
 
 
 def main():
-    print("NetScope v0.1")
-    print("Network Inspector")
-    print("=================")
 
-    print(f"Operating System: {platform.system()}")
+    # --------------------------------------------
+    # Get system information
+    # --------------------------------------------
 
+    operating_system = platform.system()
     hostname = socket.gethostname()
-    print(f"Hostname : {hostname}")
+
+    # --------------------------------------------
+    # Get network information
+    # --------------------------------------------
+
+    interface, ip_address, subnet_mask, gateway = get_network_info()
+
+    # Check whether required information was found
+    if not ip_address or not subnet_mask:
+        print("Unable to detect network information.")
+        print("Please check the Windows network configuration.")
+        return
+
+    # --------------------------------------------
+    # Calculate network details
+    # --------------------------------------------
+
+    (
+        cidr,
+        network,
+        network_address,
+        broadcast,
+        usable_hosts
+    ) = get_network_details(
+        ip_address,
+        subnet_mask
+    )
+
+    # --------------------------------------------
+    # Check connectivity
+    # --------------------------------------------
+
+    gateway_status = check_ping(gateway)
+    internet_status = check_ping("8.8.8.8")
+
+    # --------------------------------------------
+    # Display NetScope
+    # --------------------------------------------
+
+    print("============================================")
+    print("               NetScope v0.1")
+    print("            Network Inspector")
+    print("============================================")
+    print()
+
+    print("SYSTEM")
+    print("--------------------------------------------")
+    print(f"Operating System : {operating_system}")
+    print(f"Hostname         : {hostname}")
+    print()
+
+    print("NETWORK")
+    print("--------------------------------------------")
+    print(f"Interface        : {interface}")
+    print(f"IPv4 Address     : {ip_address}")
+    print(f"Subnet Mask      : {subnet_mask}")
+    print(f"CIDR             : /{cidr}")
+    print(f"Network          : {network}")
+    print(f"Broadcast        : {broadcast}")
+    print(f"Usable Hosts     : {usable_hosts}")
+    print()
+
+    print("ROUTING")
+    print("--------------------------------------------")
+    print(f"Default Gateway  : {gateway if gateway else 'Not detected'}")
+    print()
+
+    print("CONNECTIVITY")
+    print("--------------------------------------------")
+    print(
+        f"Gateway          : "
+        f"{'Reachable' if gateway_status else 'Unreachable'}"
+    )
+    print(
+        f"Internet         : "
+        f"{'Reachable' if internet_status else 'Unreachable'}"
+    )
+    print()
+
+    print("============================================")
 
 
 if __name__ == "__main__":
