@@ -1,4 +1,6 @@
 import platform
+import socket
+
 
 
 def main():
@@ -7,6 +9,9 @@ def main():
     print("=================")
 
     print(f"Operating System: {platform.system()}")
+
+    hostname = socket.gethostname()
+    print(f"Hostname : {hostname}")
 
 
 if __name__ == "__main__":
