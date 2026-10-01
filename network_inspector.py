@@ -76,7 +76,7 @@ def mask_to_cidr(subnet_mask):
 
 
 def get_network_details(ip_address, subnet_mask):
-    """Calculate network, broadcast and usable hosts."""
+    """Calculate detailed subnet information."""
 
     cidr = mask_to_cidr(subnet_mask)
 
@@ -85,17 +85,26 @@ def get_network_details(ip_address, subnet_mask):
         strict=False
     )
 
-    # /31 and /32 are special cases.
+    total_addresses = network.num_addresses
+
+    # /31 and /32 networks are special cases.
     if network.prefixlen >= 31:
-        usable_hosts = network.num_addresses
+        first_host = network.network_address
+        last_host = network.broadcast_address
+        usable_hosts = total_addresses
     else:
-        usable_hosts = network.num_addresses - 2
+        first_host = network.network_address + 1
+        last_host = network.broadcast_address - 1
+        usable_hosts = total_addresses - 2
 
     return (
         cidr,
         network,
         network.network_address,
         network.broadcast_address,
+        total_addresses,
+        first_host,
+        last_host,
         usable_hosts
     )
 
@@ -128,7 +137,12 @@ def main():
     # Get network information
     # --------------------------------------------
 
-    interface, ip_address, subnet_mask, gateway = get_network_info()
+    (
+        interface,
+        ip_address,
+        subnet_mask,
+        gateway
+    ) = get_network_info()
 
     # Check whether required information was found
     if not ip_address or not subnet_mask:
@@ -137,7 +151,7 @@ def main():
         return
 
     # --------------------------------------------
-    # Calculate network details
+    # Calculate subnet information
     # --------------------------------------------
 
     (
@@ -145,11 +159,25 @@ def main():
         network,
         network_address,
         broadcast,
+        total_addresses,
+        first_host,
+        last_host,
         usable_hosts
     ) = get_network_details(
         ip_address,
         subnet_mask
     )
+
+    # --------------------------------------------
+    # Determine network type
+    # --------------------------------------------
+
+    address = ipaddress.ip_address(ip_address)
+
+    if address.is_private:
+        network_type = "Private IPv4"
+    else:
+        network_type = "Public IPv4"
 
     # --------------------------------------------
     # Check connectivity
@@ -163,8 +191,8 @@ def main():
     # --------------------------------------------
 
     print("============================================")
-    print("               NetScope v0.1")
-    print("            Network Inspector")
+    print("               NetScope v0.2")
+    print("              Subnet Analyzer")
     print("============================================")
     print()
 
@@ -180,14 +208,30 @@ def main():
     print(f"IPv4 Address     : {ip_address}")
     print(f"Subnet Mask      : {subnet_mask}")
     print(f"CIDR             : /{cidr}")
-    print(f"Network          : {network}")
+    print(f"Network          : {network_address}")
     print(f"Broadcast        : {broadcast}")
+    print(f"Total Addresses  : {total_addresses}")
     print(f"Usable Hosts     : {usable_hosts}")
+    print()
+
+    print("HOST RANGE")
+    print("--------------------------------------------")
+    print(f"First Host       : {first_host}")
+    print(f"Last Host        : {last_host}")
+    print(f"Host Range       : {first_host} - {last_host}")
+    print()
+
+    print("NETWORK TYPE")
+    print("--------------------------------------------")
+    print(f"Address Type     : {network_type}")
     print()
 
     print("ROUTING")
     print("--------------------------------------------")
-    print(f"Default Gateway  : {gateway if gateway else 'Not detected'}")
+    print(
+        f"Default Gateway  : "
+        f"{gateway if gateway else 'Not detected'}"
+    )
     print()
 
     print("CONNECTIVITY")
