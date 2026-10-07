@@ -3,6 +3,7 @@ import socket
 import subprocess
 import ipaddress
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def get_network_info():
@@ -87,7 +88,6 @@ def get_network_details(ip_address, subnet_mask):
 
     total_addresses = network.num_addresses
 
-    # /31 and /32 networks are special cases.
     if network.prefixlen >= 31:
         first_host = network.network_address
         last_host = network.broadcast_address
@@ -110,18 +110,55 @@ def get_network_details(ip_address, subnet_mask):
 
 
 def check_ping(address):
-    """Check whether an address is reachable using ping."""
+    """Check whether an IP address responds to ping."""
 
     if not address:
         return False
 
     result = subprocess.run(
-        ["ping", "-n", "1", "-w", "1000", address],
+        ["ping", "-n", "1", "-w", "500", str(address)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
 
     return result.returncode == 0
+
+
+def discover_host(address):
+    """Check whether a host is reachable."""
+
+    if check_ping(address):
+        return address
+
+    return None
+
+
+def discover_hosts(network, max_workers=50):
+    """Discover reachable hosts in the network."""
+
+    discovered_hosts = []
+
+    hosts = network.hosts()
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+
+        futures = {
+            executor.submit(discover_host, host): host
+            for host in hosts
+        }
+
+        for future in as_completed(futures):
+
+            host = future.result()
+
+            if host is not None:
+                discovered_hosts.append(host)
+
+    discovered_hosts.sort(
+        key=lambda address: int(ipaddress.ip_address(address))
+    )
+
+    return discovered_hosts
 
 
 def main():
@@ -144,7 +181,6 @@ def main():
         gateway
     ) = get_network_info()
 
-    # Check whether required information was found
     if not ip_address or not subnet_mask:
         print("Unable to detect network information.")
         print("Please check the Windows network configuration.")
@@ -187,12 +223,23 @@ def main():
     internet_status = check_ping("8.8.8.8")
 
     # --------------------------------------------
+    # Discover active hosts
+    # --------------------------------------------
+
+    print()
+    print("Starting host discovery...")
+    print("Please wait...")
+    print()
+
+    discovered_hosts = discover_hosts(network)
+
+    # --------------------------------------------
     # Display NetScope
     # --------------------------------------------
 
     print("============================================")
-    print("               NetScope v0.2")
-    print("              Subnet Analyzer")
+    print("               NetScope v0.3")
+    print("              Host Discovery")
     print("============================================")
     print()
 
@@ -218,7 +265,6 @@ def main():
     print("--------------------------------------------")
     print(f"First Host       : {first_host}")
     print(f"Last Host        : {last_host}")
-    print(f"Host Range       : {first_host} - {last_host}")
     print()
 
     print("NETWORK TYPE")
@@ -244,6 +290,22 @@ def main():
         f"Internet         : "
         f"{'Reachable' if internet_status else 'Unreachable'}"
     )
+    print()
+
+    print("DISCOVERED HOSTS")
+    print("--------------------------------------------")
+
+    if discovered_hosts:
+
+        for host in discovered_hosts:
+            print(f"{str(host):<16} Reachable")
+
+    else:
+        print("No responding hosts found.")
+
+    print()
+
+    print(f"Total Hosts Found: {len(discovered_hosts)}")
     print()
 
     print("============================================")
