@@ -7,8 +7,12 @@ from scapy.all import (
     UDP,
     ICMP,
     DNS,
-    Raw
 )
+
+
+DEFAULT_PACKET_COUNT = 20
+MAX_PACKET_COUNT = 1000
+CAPTURE_TIMEOUT_SECONDS = 30
 
 
 def get_protocol(packet):
@@ -91,56 +95,6 @@ def analyze_packet(packet, packet_number, statistics):
         f"{summary['length']}"
     )
 
-    if packet.haslayer(DNS):
-
-        dns_layer = packet[DNS]
-
-        if dns_layer.qr == 0 and dns_layer.qd:
-
-            query_name = dns_layer.qd.qname
-
-            if isinstance(query_name, bytes):
-                query_name = query_name.decode(
-                    "utf-8",
-                    errors="replace"
-                )
-
-            print(
-                f"       DNS Query: {query_name}"
-            )
-
-    if packet.haslayer(Raw):
-
-        payload = bytes(packet[Raw].load)
-
-        if payload:
-
-            preview = payload[:40]
-
-            try:
-                text = preview.decode(
-                    "utf-8",
-                    errors="replace"
-                )
-
-                text = text.replace(
-                    "\r",
-                    " "
-                ).replace(
-                    "\n",
-                    " "
-                )
-
-                if text.strip():
-
-                    print(
-                        f"       Payload: {text}"
-                    )
-
-            except UnicodeDecodeError:
-                pass
-
-
 def main():
 
     print("=" * 110)
@@ -157,8 +111,9 @@ def main():
     try:
         packet_count = int(
             input(
-                "Number of packets to capture [20]: "
-            ).strip() or "20"
+                f"Number of packets to capture "
+                f"[{DEFAULT_PACKET_COUNT}, max {MAX_PACKET_COUNT}]: "
+            ).strip() or str(DEFAULT_PACKET_COUNT)
         )
 
     except ValueError:
@@ -166,14 +121,20 @@ def main():
         print("Invalid packet count.")
         return
 
-    if packet_count <= 0:
+    if not 1 <= packet_count <= MAX_PACKET_COUNT:
 
-        print("Packet count must be greater than zero.")
+        print(
+            f"Packet count must be between 1 and "
+            f"{MAX_PACKET_COUNT}."
+        )
         return
 
     print()
     print(f"Capturing {packet_count} packets...")
-    print("Generate some network traffic if necessary.")
+    print(
+        f"Capture will stop after "
+        f"{CAPTURE_TIMEOUT_SECONDS} seconds if the count is not reached."
+    )
     print()
 
     statistics = Counter()
@@ -202,7 +163,8 @@ def main():
                 sum(statistics.values()) + 1,
                 statistics
             ),
-            store=False
+            store=False,
+            timeout=CAPTURE_TIMEOUT_SECONDS
         )
 
     except PermissionError:
@@ -227,6 +189,12 @@ def main():
     total_packets = sum(
         statistics.values()
     )
+
+    if total_packets < packet_count:
+        print(
+            f"Capture timed out after {total_packets} of "
+            f"{packet_count} requested packets."
+        )
 
     for protocol, count in statistics.most_common():
 

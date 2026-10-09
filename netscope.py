@@ -12,6 +12,7 @@ from tcp_scanner import (
 )
 
 from service_detector import (
+    sanitize_banner,
     scan_services,
 )
 
@@ -53,10 +54,14 @@ def get_target_ip():
     ).strip()
 
     try:
-        ipaddress.ip_address(target_ip)
+        address = ipaddress.ip_address(target_ip)
 
     except ValueError:
         print("Invalid IPv4 address.")
+        return None
+
+    if not isinstance(address, ipaddress.IPv4Address):
+        print("IPv6 addresses are not supported. Enter an IPv4 address.")
         return None
 
     return target_ip
@@ -156,7 +161,13 @@ def host_discovery():
     print("Only hosts that respond to ICMP may be detected.")
     print()
 
-    hosts = discover_hosts(network)
+    try:
+        hosts = discover_hosts(network)
+
+    except ValueError as error:
+        print()
+        print(error)
+        return
 
     print("=" * 50)
     print("HOST DISCOVERY")
@@ -253,14 +264,7 @@ def service_detection():
         found += 1
 
         if banner:
-
-            banner_preview = (
-                banner
-                .replace("\r", " ")
-                .replace("\n", " ")
-            )
-
-            banner_preview = banner_preview[:50]
+            banner_preview = sanitize_banner(banner)
 
         else:
 
@@ -392,7 +396,7 @@ def security_analysis():
     print(f"Target       : {target_ip}")
     print(f"Open Ports   : {len(open_ports)}")
     print(f"Findings     : {len(findings)}")
-    print(f"Risk Score   : {risk_score}/100")
+    print(f"Heuristic Exposure Score : {risk_score}")
     print(f"Risk Level   : {risk_level}")
 
     print_findings(findings)
@@ -401,12 +405,12 @@ def security_analysis():
     print("=" * 55)
 
 
-def full_assessment():
-    """Run the main network assessment modules."""
+def quick_local_assessment():
+    """Run a quick local network assessment."""
 
     print()
     print("=" * 55)
-    print("             FULL ASSESSMENT")
+    print("         QUICK LOCAL ASSESSMENT")
     print("=" * 55)
 
     print()
@@ -418,7 +422,7 @@ def full_assessment():
     host_discovery()
 
     print()
-    print("Full assessment completed.")
+    print("Quick Local Assessment completed.")
     print("=" * 55)
 
 
@@ -434,7 +438,7 @@ def show_menu():
     print("5. LAN Discovery")
     print("6. Packet Analysis")
     print("7. Security Analysis")
-    print("8. Full Assessment")
+    print("8. Quick Local Assessment")
     print("0. Exit")
 
     print()
@@ -499,7 +503,7 @@ def main():
 
         elif choice == "8":
 
-            full_assessment()
+            quick_local_assessment()
 
         elif choice == "0":
 

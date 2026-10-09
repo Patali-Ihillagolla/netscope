@@ -6,6 +6,9 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
+MAX_DISCOVERY_ADDRESSES = 256
+
+
 def get_network_info():
     """Get active network information from Windows ipconfig."""
 
@@ -134,7 +137,14 @@ def discover_host(address):
 
 
 def discover_hosts(network, max_workers=50):
-    """Discover reachable hosts in the network."""
+    """Discover reachable hosts in IPv4 subnets with at most 256 addresses."""
+
+    if network.num_addresses > MAX_DISCOVERY_ADDRESSES:
+        raise ValueError(
+            "Host discovery is limited to IPv4 subnets with "
+            f"at most {MAX_DISCOVERY_ADDRESSES} addresses "
+            "(a /24 network or narrower)."
+        )
 
     discovered_hosts = []
 
@@ -231,7 +241,12 @@ def main():
     print("Please wait...")
     print()
 
-    discovered_hosts = discover_hosts(network)
+    try:
+        discovered_hosts = discover_hosts(network)
+
+    except ValueError as error:
+        print(error)
+        return
 
     # --------------------------------------------
     # Display NetScope

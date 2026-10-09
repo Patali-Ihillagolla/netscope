@@ -1,3 +1,4 @@
+import re
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -17,6 +18,22 @@ COMMON_PORTS = {
     5432: "PostgreSQL",
     8080: "HTTP-Alternative",
 }
+
+ANSI_ESCAPE = re.compile(
+    r"\x1B(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1B\\)|[@-_])"
+)
+
+
+def sanitize_banner(banner, max_length=50):
+    """Remove terminal controls and limit untrusted banner text."""
+
+    banner = ANSI_ESCAPE.sub("", banner)
+    banner = "".join(
+        character if character.isprintable() else " "
+        for character in banner
+    )
+
+    return " ".join(banner.split())[:max_length]
 
 
 def check_port(target_ip, port, timeout=1):
@@ -230,15 +247,7 @@ def main():
             continue
 
         if banner:
-            banner_preview = banner.replace(
-                "\r",
-                " "
-            ).replace(
-                "\n",
-                " "
-            )
-
-            banner_preview = banner_preview[:50]
+            banner_preview = sanitize_banner(banner)
 
         else:
             banner_preview = "No banner"

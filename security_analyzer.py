@@ -283,7 +283,7 @@ def analyze_security(scan_results):
 
 
 def calculate_risk_score(findings):
-    """Calculate a simple rule-based risk score."""
+    """Calculate a heuristic exposure score from rule-based findings."""
 
     score = 0
 
@@ -325,40 +325,53 @@ def print_findings(findings):
     if not findings:
 
         print()
-        print("No security findings were identified.")
-        return
+        print("No rule-based findings were identified.")
 
-    for number, finding in enumerate(
-        findings,
-        start=1
-    ):
+    else:
 
-        print()
-        print(
-            f"[{finding['severity']}] "
-            f"{finding['title']}"
-        )
+        for number, finding in enumerate(
+            findings,
+            start=1
+        ):
 
-        print(
-            f"Port       : {finding['port']}"
-        )
+            print()
+            print(
+                f"[{finding['severity']}] "
+                f"{finding['title']}"
+            )
 
-        print(
-            f"Service    : {finding['service']}"
-        )
+            print(
+                f"Port       : {finding['port']}"
+            )
 
-        print(
-            f"Description: "
-            f"{finding['description']}"
-        )
+            print(
+                f"Service    : {finding['service']}"
+            )
 
-        print(
-            f"Recommendation: "
-            f"{finding['recommendation']}"
-        )
+            print(
+                f"Description: "
+                f"{finding['description']}"
+            )
 
-        if number < len(findings):
-            print("-" * 70)
+            print(
+                f"Recommendation: "
+                f"{finding['recommendation']}"
+            )
+
+            if number < len(findings):
+                print("-" * 70)
+
+    print()
+    print(
+        "The heuristic exposure score reflects findings under "
+        "the configured rules for the selected TCP ports; "
+        "higher scores mean more rule-based findings. "
+        "It is not a standardized or calibrated risk metric."
+    )
+    print(
+        "An open port alone does not prove a vulnerability, "
+        "and no findings do not prove the target is secure."
+    )
 
 
 def main():
@@ -475,7 +488,7 @@ def main():
     )
 
     print(
-        f"Risk Score : {risk_score}/100"
+        f"Heuristic Exposure Score : {risk_score}"
     )
 
     print(
