@@ -25,6 +25,8 @@ The TCP scanner, service detector, and security analyzer use one shared 14-port 
 
 ```text
 netscope/
+├── common_ports.py
+├── input_validation.py
 ├── lan_discovery.py
 ├── network_inspector.py
 ├── netscope.py
@@ -33,11 +35,14 @@ netscope/
 ├── security_analyzer.py
 ├── service_detector.py
 ├── tcp_scanner.py
+├── terminal_utils.py
 └── tests/
+    ├── test_common_ports.py
     ├── test_netscope.py
     ├── test_network_inspector.py
     ├── test_packet_analyzer.py
-    └── test_security_analyzer.py
+    ├── test_security_analyzer.py
+    └── test_terminal_utils.py
 ```
 
 `netscope.py` is the main menu entry point. Each feature module can also be run independently where it provides a command-line entry point.
