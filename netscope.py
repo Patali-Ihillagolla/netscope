@@ -1,5 +1,7 @@
 import ipaddress
 
+from common_ports import COMMON_PORTS
+from input_validation import prompt_for_ipv4
 from network_inspector import (
     get_network_info,
     get_network_details,
@@ -7,7 +9,6 @@ from network_inspector import (
 )
 
 from tcp_scanner import (
-    COMMON_PORTS,
     scan_ports,
 )
 
@@ -27,12 +28,12 @@ from packet_analyzer import (
 
 from security_analyzer import (
     scan_ports as security_scan_ports,
-    COMMON_PORTS as SECURITY_PORTS,
     analyze_security,
     calculate_risk_score,
     get_risk_level,
     print_findings,
 )
+from terminal_utils import sanitize_terminal_text
 
 
 def print_header():
@@ -49,22 +50,7 @@ def print_header():
 def get_target_ip():
     """Ask the user for a target IPv4 address."""
 
-    target_ip = input(
-        "Enter target IPv4 address: "
-    ).strip()
-
-    try:
-        address = ipaddress.ip_address(target_ip)
-
-    except ValueError:
-        print("Invalid IPv4 address.")
-        return None
-
-    if not isinstance(address, ipaddress.IPv4Address):
-        print("IPv6 addresses are not supported. Enter an IPv4 address.")
-        return None
-
-    return target_ip
+    return prompt_for_ipv4("Enter target IPv4 address: ")
 
 
 def network_information():
@@ -111,9 +97,9 @@ def network_information():
     print("NETWORK INFORMATION")
     print("=" * 50)
 
-    print(f"Interface        : {interface}")
-    print(f"IPv4 Address     : {ip_address}")
-    print(f"Subnet Mask      : {subnet_mask}")
+    print(f"Interface        : {sanitize_terminal_text(interface)}")
+    print(f"IPv4 Address     : {sanitize_terminal_text(ip_address)}")
+    print(f"Subnet Mask      : {sanitize_terminal_text(subnet_mask)}")
     print(f"CIDR             : /{cidr}")
     print(f"Network          : {network_address}")
     print(f"Broadcast        : {broadcast}")
@@ -122,7 +108,10 @@ def network_information():
     print(f"First Host       : {first_host}")
     print(f"Last Host        : {last_host}")
     print(f"Network Type     : {network_type}")
-    print(f"Gateway          : {gateway or 'Not detected'}")
+    print(
+        f"Gateway          : "
+        f"{sanitize_terminal_text(gateway or 'Not detected')}"
+    )
 
     print("=" * 50)
 
@@ -166,7 +155,7 @@ def host_discovery():
 
     except ValueError as error:
         print()
-        print(error)
+        print(sanitize_terminal_text(error))
         return
 
     print("=" * 50)
@@ -195,7 +184,7 @@ def port_scan():
         return
 
     print()
-    print(f"Scanning target: {target_ip}")
+    print(f"Scanning target: {sanitize_terminal_text(target_ip)}")
     print(f"Ports checked: {len(COMMON_PORTS)}")
     print()
 
@@ -241,7 +230,7 @@ def service_detection():
         return
 
     print()
-    print(f"Target: {target_ip}")
+    print(f"Target: {sanitize_terminal_text(target_ip)}")
     print("Starting service detection...")
     print()
 
@@ -272,7 +261,7 @@ def service_detection():
 
         print(
             f"{port:<8}"
-            f"{service:<20}"
+            f"{sanitize_terminal_text(service, 40):<20}"
             f"{banner_preview}"
         )
 
@@ -306,7 +295,7 @@ def lan_discovery():
             subnet_mask
         )
 
-        print(f"Interface : {interface}")
+        print(f"Interface : {sanitize_terminal_text(interface)}")
         print(f"Network   : {network}")
         print("\nStarting ARP discovery...")
         print("This only works on the local LAN.")
@@ -321,7 +310,7 @@ def lan_discovery():
 
     except OSError as error:
         print("ARP discovery failed.")
-        print(f"Error: {error}")
+        print(f"Error: {sanitize_terminal_text(error)}")
         return
 
     if not devices:
@@ -337,8 +326,8 @@ def lan_discovery():
 
         for device in devices:
             print(
-                f"{str(device['ip']):<20}"
-                f"{device['mac']:<20}"
+                f"{sanitize_terminal_text(device['ip'], 64):<20}"
+                f"{sanitize_terminal_text(device['mac'], 64):<20}"
             )
 
     print("-" * 55)
@@ -361,13 +350,13 @@ def security_analysis():
         return
 
     print()
-    print(f"Target: {target_ip}")
+    print(f"Target: {sanitize_terminal_text(target_ip)}")
     print("Starting security analysis...")
     print()
 
     scan_results = security_scan_ports(
         target_ip,
-        SECURITY_PORTS.keys()
+        COMMON_PORTS.keys()
     )
 
     open_ports = [
@@ -393,7 +382,7 @@ def security_analysis():
     print("SECURITY ANALYSIS")
     print("=" * 55)
 
-    print(f"Target       : {target_ip}")
+    print(f"Target       : {sanitize_terminal_text(target_ip)}")
     print(f"Open Ports   : {len(open_ports)}")
     print(f"Findings     : {len(findings)}")
     print(f"Heuristic Exposure Score : {risk_score}")

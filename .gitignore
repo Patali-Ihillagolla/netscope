@@ -7,3 +7,11 @@ venv/
 !.env.example
 .vscode/
 .idea/
+*.log
+*.pcap
+*.pcapng
+*.tmp
+*.temp
+exports/
+scan-results/
+scan_results/

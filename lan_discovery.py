@@ -6,6 +6,8 @@ import subprocess
 
 from scapy.all import ARP, Ether, srp
 
+from terminal_utils import sanitize_terminal_text
+
 
 def get_network_info():
     """Get active IPv4 network information from Windows."""
@@ -144,15 +146,15 @@ def main():
 
     print("SYSTEM")
     print("-" * 60)
-    print(f"Operating System : {operating_system}")
-    print(f"Hostname         : {hostname}")
+    print(f"Operating System : {sanitize_terminal_text(operating_system)}")
+    print(f"Hostname         : {sanitize_terminal_text(hostname)}")
     print()
 
     print("LOCAL NETWORK")
     print("-" * 60)
-    print(f"Interface        : {interface}")
-    print(f"IPv4 Address     : {ip_address}")
-    print(f"Subnet Mask      : {subnet_mask}")
+    print(f"Interface        : {sanitize_terminal_text(interface)}")
+    print(f"IPv4 Address     : {sanitize_terminal_text(ip_address)}")
+    print(f"Subnet Mask      : {sanitize_terminal_text(subnet_mask)}")
     print(f"Network          : {network}")
     print()
 
@@ -172,7 +174,7 @@ def main():
 
     except OSError as error:
         print("Unable to perform ARP discovery.")
-        print(f"Error: {error}")
+        print(f"Error: {sanitize_terminal_text(error)}")
         return
 
     print("DISCOVERED DEVICES")
@@ -193,8 +195,8 @@ def main():
         for device in devices:
 
             print(
-                f"{device['ip']:<18}"
-                f"{device['mac']:<20}"
+                f"{sanitize_terminal_text(device['ip'], 64):<18}"
+                f"{sanitize_terminal_text(device['mac'], 64):<20}"
             )
 
     print("-" * 60)

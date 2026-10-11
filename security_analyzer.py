@@ -1,23 +1,9 @@
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-COMMON_PORTS = {
-    21: "FTP",
-    22: "SSH",
-    23: "Telnet",
-    25: "SMTP",
-    53: "DNS",
-    80: "HTTP",
-    110: "POP3",
-    143: "IMAP",
-    443: "HTTPS",
-    445: "SMB",
-    3306: "MySQL",
-    3389: "RDP",
-    5432: "PostgreSQL",
-    8080: "HTTP-Alternative",
-}
+from common_ports import COMMON_PORTS
+from input_validation import prompt_for_ipv4
+from terminal_utils import sanitize_terminal_text
 
 
 SECURITY_RULES = {
@@ -336,26 +322,28 @@ def print_findings(findings):
 
             print()
             print(
-                f"[{finding['severity']}] "
-                f"{finding['title']}"
+                f"[{sanitize_terminal_text(finding['severity'], 16)}] "
+                f"{sanitize_terminal_text(finding['title'])}"
             )
 
             print(
-                f"Port       : {finding['port']}"
+                f"Port       : "
+                f"{sanitize_terminal_text(finding['port'])}"
             )
 
             print(
-                f"Service    : {finding['service']}"
+                f"Service    : "
+                f"{sanitize_terminal_text(finding['service'])}"
             )
 
             print(
                 f"Description: "
-                f"{finding['description']}"
+                f"{sanitize_terminal_text(finding['description'])}"
             )
 
             print(
                 f"Recommendation: "
-                f"{finding['recommendation']}"
+                f"{sanitize_terminal_text(finding['recommendation'])}"
             )
 
             if number < len(findings):
@@ -394,21 +382,10 @@ def main():
 
     print()
 
-    target_ip = input(
-        "Enter target IPv4 address: "
-    ).strip()
-
-    try:
-
-        socket.inet_aton(target_ip)
-
-    except OSError:
-
-        print("Invalid IPv4 address.")
-        return
+    target_ip = prompt_for_ipv4("Enter target IPv4 address: ")
 
     print()
-    print(f"Target: {target_ip}")
+    print(f"Target: {sanitize_terminal_text(target_ip)}")
     print(
         f"Ports to analyze: "
         f"{len(COMMON_PORTS)}"
@@ -449,7 +426,7 @@ def main():
 
         print(
             f"{port:<10}"
-            f"{service:<22}"
+            f"{sanitize_terminal_text(service, 40):<22}"
             f"OPEN"
         )
 

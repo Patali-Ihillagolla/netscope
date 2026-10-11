@@ -1,39 +1,15 @@
-import re
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-COMMON_PORTS = {
-    21: "FTP",
-    22: "SSH",
-    25: "SMTP",
-    53: "DNS",
-    80: "HTTP",
-    110: "POP3",
-    143: "IMAP",
-    443: "HTTPS",
-    445: "SMB",
-    3306: "MySQL",
-    3389: "RDP",
-    5432: "PostgreSQL",
-    8080: "HTTP-Alternative",
-}
-
-ANSI_ESCAPE = re.compile(
-    r"\x1B(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1B\\)|[@-_])"
-)
+from common_ports import COMMON_PORTS
+from input_validation import prompt_for_ipv4
+from terminal_utils import sanitize_terminal_text
 
 
 def sanitize_banner(banner, max_length=50):
     """Remove terminal controls and limit untrusted banner text."""
 
-    banner = ANSI_ESCAPE.sub("", banner)
-    banner = "".join(
-        character if character.isprintable() else " "
-        for character in banner
-    )
-
-    return " ".join(banner.split())[:max_length]
+    return sanitize_terminal_text(banner, max_length=max_length)
 
 
 def check_port(target_ip, port, timeout=1):
@@ -206,19 +182,10 @@ def main():
     print("explicit permission to test.")
     print()
 
-    target_ip = input(
-        "Enter target IPv4 address: "
-    ).strip()
-
-    try:
-        socket.inet_aton(target_ip)
-
-    except OSError:
-        print("Invalid IPv4 address.")
-        return
+    target_ip = prompt_for_ipv4("Enter target IPv4 address: ")
 
     print()
-    print(f"Target: {target_ip}")
+    print(f"Target: {sanitize_terminal_text(target_ip)}")
     print(
         f"Ports to scan: {len(COMMON_PORTS)}"
     )
@@ -254,7 +221,7 @@ def main():
 
         print(
             f"{port:<8}"
-            f"{service:<20}"
+            f"{sanitize_terminal_text(service, 40):<20}"
             f"{'OPEN':<12}"
             f"{banner_preview}"
         )

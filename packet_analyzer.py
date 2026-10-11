@@ -9,6 +9,8 @@ from scapy.all import (
     DNS,
 )
 
+from terminal_utils import sanitize_terminal_text
+
 
 DEFAULT_PACKET_COUNT = 20
 MAX_PACKET_COUNT = 1000
@@ -87,11 +89,11 @@ def analyze_packet(packet, packet_number, statistics):
     print(
         f"{packet_number:<6}"
         f"{protocol:<10}"
-        f"{summary['source']:<18}"
-        f"{summary['destination']:<18}"
-        f"{str(summary['source_port']):<10}"
-        f"{str(summary['destination_port']):<10}"
-        f"{summary['flags']:<8}"
+        f"{sanitize_terminal_text(summary['source'], 64):<18}"
+        f"{sanitize_terminal_text(summary['destination'], 64):<18}"
+        f"{sanitize_terminal_text(summary['source_port'], 16):<10}"
+        f"{sanitize_terminal_text(summary['destination_port'], 16):<10}"
+        f"{sanitize_terminal_text(summary['flags'], 24):<8}"
         f"{summary['length']}"
     )
 
@@ -178,7 +180,7 @@ def main():
 
         print()
         print("Packet capture failed.")
-        print(f"Error: {error}")
+        print(f"Error: {sanitize_terminal_text(error)}")
         return
 
     print()

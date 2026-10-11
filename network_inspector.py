@@ -5,6 +5,8 @@ import ipaddress
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from terminal_utils import sanitize_terminal_text
+
 
 MAX_DISCOVERY_ADDRESSES = 256
 
@@ -245,7 +247,7 @@ def main():
         discovered_hosts = discover_hosts(network)
 
     except ValueError as error:
-        print(error)
+        print(sanitize_terminal_text(error))
         return
 
     # --------------------------------------------
@@ -260,15 +262,15 @@ def main():
 
     print("SYSTEM")
     print("--------------------------------------------")
-    print(f"Operating System : {operating_system}")
-    print(f"Hostname         : {hostname}")
+    print(f"Operating System : {sanitize_terminal_text(operating_system)}")
+    print(f"Hostname         : {sanitize_terminal_text(hostname)}")
     print()
 
     print("NETWORK")
     print("--------------------------------------------")
-    print(f"Interface        : {interface}")
-    print(f"IPv4 Address     : {ip_address}")
-    print(f"Subnet Mask      : {subnet_mask}")
+    print(f"Interface        : {sanitize_terminal_text(interface)}")
+    print(f"IPv4 Address     : {sanitize_terminal_text(ip_address)}")
+    print(f"Subnet Mask      : {sanitize_terminal_text(subnet_mask)}")
     print(f"CIDR             : /{cidr}")
     print(f"Network          : {network_address}")
     print(f"Broadcast        : {broadcast}")
@@ -291,7 +293,7 @@ def main():
     print("--------------------------------------------")
     print(
         f"Default Gateway  : "
-        f"{gateway if gateway else 'Not detected'}"
+        f"{sanitize_terminal_text(gateway if gateway else 'Not detected')}"
     )
     print()
 
@@ -313,7 +315,7 @@ def main():
     if discovered_hosts:
 
         for host in discovered_hosts:
-            print(f"{str(host):<16} Reachable")
+            print(f"{sanitize_terminal_text(host, 64):<16} Reachable")
 
     else:
         print("No responding hosts found.")

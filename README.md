@@ -13,13 +13,13 @@ NetScope can display local IP/network details, interface names, discovered devic
 - **Network Information** — Reads Windows network details with `ipconfig` and calculates IPv4 network boundaries. It reports the detected interface, address, subnet, and gateway; detection depends on the local Windows configuration.
 - **Host Discovery** — Pings addresses yielded by the local IPv4 subnet's host iterator. Hosts that filter or do not answer ICMP may not be discovered. Discovery rejects subnets larger than 256 total addresses (a `/24` or narrower) before scheduling host checks.
 - **TCP Port Scan** — Checks the configured common TCP port list only; this is not a scan of every port. Targets must be valid IPv4 addresses. Scan only authorized systems.
-- **Service Detection** — Checks its configured common TCP ports and may use remote-provided banners to identify likely services. Displayed banners are sanitized and limited to 50 characters. Identification can be incomplete or incorrect. This feature's list currently omits Telnet port 23, which is included by the TCP scanner and security analysis.
+- **Service Detection** — Checks the shared 14-port common TCP inventory, including Telnet (23), and may use remote-provided banners to identify likely services. Displayed banners are sanitized and limited to 50 characters. Identification can be incomplete or incorrect.
 - **LAN Discovery** — Sends ARP requests on the detected local IPv4 LAN and displays responding IP and MAC addresses. It is limited to the local link and may require elevated privileges.
 - **Packet Analysis** — Uses Scapy to capture up to 1,000 packets, with a default request of 20 and a 30-second timeout. It displays packet metadata (such as protocol, addresses, ports, flags, and length), not raw payloads or DNS query names. It does not store captured packets. Packet capture may require Npcap and elevated privileges on Windows.
 - **Security Analysis** — Checks the configured common TCP ports and applies the project's configured rules to produce findings and a heuristic exposure score. The score is not a calibrated vulnerability score or standardized risk metric. An open port alone does not prove a vulnerability; no findings do not prove a device is secure.
 - **Quick Local Assessment** — Runs Network Information and ICMP Host Discovery only. It does not run port scanning, service detection, ARP discovery, packet capture, or security analysis.
 
-The TCP scanner and security analyzer each define a 14-port inventory, including Telnet (23). The service detector currently defines 13 ports and omits Telnet (23). These lists are separate in the current implementation.
+The TCP scanner, service detector, and security analyzer use one shared 14-port inventory, including Telnet (23). Telnet is included because its lack of encryption makes exposure worth reviewing; an open port alone does not prove that a vulnerability exists.
 
 ## Project Structure
 
@@ -85,7 +85,7 @@ Enter a menu number. Target-based scanning options request an IPv4 address; IPv6
 | `1` | Display local IPv4 network information. |
 | `2` | Discover hosts that respond to ICMP ping within the detected subnet, subject to the 256-address limit. |
 | `3` | Scan the TCP scanner's configured common ports on a supplied IPv4 target. |
-| `4` | Detect likely services on the service detector's configured ports and display sanitized banner previews when available. |
+| `4` | Detect likely services on the shared 14-port inventory, including Telnet (23), and display sanitized banner previews when available. |
 | `5` | Discover responding devices on the local LAN using ARP. |
 | `6` | Capture up to the requested packet count (maximum 1,000) or stop after 30 seconds; display packet metadata and protocol statistics. |
 | `7` | Analyze the configured TCP ports against rule-based security findings and display the heuristic exposure score and risk-level label. |
